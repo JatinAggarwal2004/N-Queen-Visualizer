@@ -314,6 +314,12 @@ body {
     animation: warningPulse 0.5s ease-out;
 }
 
+.message-box.info {
+    background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+    color: white;
+    animation: successPulse 0.5s ease-out;
+}
+
 /* Chessboard */
 .board-container {
     display: flex;

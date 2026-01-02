@@ -11,6 +11,8 @@ let state = {
     musicPlaying: false
 };
 
+let messageTimeout = null;
+
 // DOM Elements
 const boardSizeInput = document.getElementById('boardSize');
 const startRowInput = document.getElementById('startRow');
@@ -32,6 +34,22 @@ const bgMusic = document.getElementById('bgMusic');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Reset all input values to defaults on page load
+    boardSizeInput.value = 8;
+    startRowInput.value = 0;
+    startColInput.value = 0;
+    speedSlider.value = 300;
+    
+    // Update state with default values
+    state.boardSize = 8;
+    state.startRow = 0;
+    state.startCol = 0;
+    state.speed = 300;
+    
+    // Update UI
+    speedValue.textContent = '300ms';
+    updateMaxValues();
+    
     initializeBoard();
     setupEventListeners();
     showMessage('Welcome! Set your starting position and click Start!', 'info');
@@ -62,11 +80,25 @@ function setupEventListeners() {
         let value = parseInt(e.target.value);
         const max = state.boardSize - 1;
         
+        // Clear any pending message timeout
+        if (messageTimeout) {
+            clearTimeout(messageTimeout);
+            messageTimeout = null;
+        }
+        
         if (!isNaN(value)) {
             if (value < 0) {
                 showMessage('⚠️ Start row cannot be negative! Please enter a value between 0 and ' + max + '.', 'warning');
+                messageTimeout = setTimeout(() => {
+                    showMessage('ℹ️ Valid starting positions for row: 0 to ' + max + ' (Board size: ' + state.boardSize + 'x' + state.boardSize + ')', 'info');
+                    messageTimeout = null;
+                }, 2500);
             } else if (value > max) {
                 showMessage('⚠️ Start row exceeds board size! Please enter a value between 0 and ' + max + '.', 'warning');
+                messageTimeout = setTimeout(() => {
+                    showMessage('ℹ️ Valid starting positions for row: 0 to ' + max + ' (Board size: ' + state.boardSize + 'x' + state.boardSize + ')', 'info');
+                    messageTimeout = null;
+                }, 2500);
             }
             state.startRow = value;
         }
@@ -76,11 +108,25 @@ function setupEventListeners() {
         let value = parseInt(e.target.value);
         const max = state.boardSize - 1;
         
+        // Clear any pending message timeout
+        if (messageTimeout) {
+            clearTimeout(messageTimeout);
+            messageTimeout = null;
+        }
+        
         if (!isNaN(value)) {
             if (value < 0) {
                 showMessage('⚠️ Start column cannot be negative! Please enter a value between 0 and ' + max + '.', 'warning');
+                messageTimeout = setTimeout(() => {
+                    showMessage('ℹ️ Valid starting positions for column: 0 to ' + max + ' (Board size: ' + state.boardSize + 'x' + state.boardSize + ')', 'info');
+                    messageTimeout = null;
+                }, 2500);
             } else if (value > max) {
                 showMessage('⚠️ Start column exceeds board size! Please enter a value between 0 and ' + max + '.', 'warning');
+                messageTimeout = setTimeout(() => {
+                    showMessage('ℹ️ Valid starting positions for column: 0 to ' + max + ' (Board size: ' + state.boardSize + 'x' + state.boardSize + ')', 'info');
+                    messageTimeout = null;
+                }, 2500);
             }
             state.startCol = value;
         }
@@ -433,6 +479,10 @@ function showMessage(text, type) {
         messageBox.classList.add('success');
     } else if (type === 'error') {
         messageBox.classList.add('error');
+    } else if (type === 'warning') {
+        messageBox.classList.add('warning');
+    } else if (type === 'info') {
+        messageBox.classList.add('info');
     }
 }
 
