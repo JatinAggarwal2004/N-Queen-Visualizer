@@ -40,17 +40,50 @@ document.addEventListener('DOMContentLoaded', () => {
 // Event Listeners
 function setupEventListeners() {
     boardSizeInput.addEventListener('input', (e) => {
-        state.boardSize = parseInt(e.target.value);
+        let value = parseInt(e.target.value);
+        
+        // Show warnings but don't auto-correct
+        if (isNaN(value)) {
+            return;
+        }
+        
+        if (value < 4) {
+            showMessage('⚠️ Board size less than 4 is too small! N-Queens requires at least 4x4 board. Please stay in range 4-20.', 'warning');
+        } else if (value > 20) {
+            showMessage('⚠️ Board size greater than 20 will take very long time to compute! Please stay in range 4-20 for better performance.', 'warning');
+        }
+        
+        state.boardSize = value;
         updateMaxValues();
         initializeBoard();
     });
 
     startRowInput.addEventListener('input', (e) => {
-        state.startRow = parseInt(e.target.value);
+        let value = parseInt(e.target.value);
+        const max = state.boardSize - 1;
+        
+        if (!isNaN(value)) {
+            if (value < 0) {
+                showMessage('⚠️ Start row cannot be negative! Please enter a value between 0 and ' + max + '.', 'warning');
+            } else if (value > max) {
+                showMessage('⚠️ Start row exceeds board size! Please enter a value between 0 and ' + max + '.', 'warning');
+            }
+            state.startRow = value;
+        }
     });
 
     startColInput.addEventListener('input', (e) => {
-        state.startCol = parseInt(e.target.value);
+        let value = parseInt(e.target.value);
+        const max = state.boardSize - 1;
+        
+        if (!isNaN(value)) {
+            if (value < 0) {
+                showMessage('⚠️ Start column cannot be negative! Please enter a value between 0 and ' + max + '.', 'warning');
+            } else if (value > max) {
+                showMessage('⚠️ Start column exceeds board size! Please enter a value between 0 and ' + max + '.', 'warning');
+            }
+            state.startCol = value;
+        }
     });
 
     speedSlider.addEventListener('input', (e) => {
@@ -64,6 +97,17 @@ function setupEventListeners() {
     resumeBtn.addEventListener('click', resumeVisualization);
     resetBtn.addEventListener('click', resetVisualization);
     musicToggle.addEventListener('click', toggleMusic);
+    
+    // Make board responsive to window resize
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (!state.isRunning) {
+                initializeBoard();
+            }
+        }, 250);
+    });
 }
 
 function updateMaxValues() {
@@ -90,21 +134,32 @@ function updateMaxValues() {
 // Board Initialization
 function initializeBoard() {
     const size = state.boardSize;
-    chessboard.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-    chessboard.style.gridTemplateRows = `repeat(${size}, 1fr)`;
     
-    // Calculate cell size - improved to prevent overflow
-    const containerWidth = Math.min(window.innerWidth - 100, 750);
-    const cellSize = Math.floor(containerWidth / size);
-    const boardSize = cellSize * size;
+    // Calculate board size dynamically based on screen and board size
+    const maxWidth = Math.min(window.innerWidth - 100, 800);
+    const maxHeight = Math.min(window.innerHeight - 400, 800);
+    const maxSize = Math.min(maxWidth, maxHeight);
     
-    chessboard.style.width = `${boardSize}px`;
-    chessboard.style.height = `${boardSize}px`;
+    // Calculate cell size dynamically for any board size
+    let cellSize = Math.floor(maxSize / size);
+    
+    // Set dynamic cell size limits based on board size
+    if (size <= 10) {
+        cellSize = Math.max(30, Math.min(cellSize, 80));
+    } else if (size <= 20) {
+        cellSize = Math.max(20, Math.min(cellSize, 60));
+    } else {
+        cellSize = Math.max(15, Math.min(cellSize, 40));
+    }
+    
+    // Set grid template to use exact cell sizes
+    chessboard.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
+    chessboard.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
     
     chessboard.innerHTML = '';
     
     // Calculate font size based on cell size for queen icons
-    const fontSize = Math.max(Math.min(cellSize * 0.6, 50), 12);
+    const fontSize = Math.max(Math.min(cellSize * 0.6, 50), 10);
     
     for (let row = 0; row < size; row++) {
         for (let col = 0; col < size; col++) {
@@ -135,6 +190,12 @@ function handleCellClick(row, col) {
 async function startVisualization() {
     if (state.isRunning) return;
     
+    // Check board size validity
+    if (state.boardSize < 4) {
+        showMessage(`❌ Board size ${state.boardSize} is too small! N-Queens requires at least 4x4 board. No solution possible.`, 'error');
+        return;
+    }
+    
     state.isRunning = true;
     state.isPaused = false;
     state.currentIteration = 0;
@@ -161,15 +222,19 @@ async function startVisualization() {
         
         const data = await response.json();
         
+        state.iterations = data.iterations;
+        
+        // Show visualization of attempts even if no solution
+        if (state.iterations && state.iterations.length > 0) {
+            await animateIterations();
+        }
+        
         if (!data.solutionFound) {
             showMessage(data.message + ' - No valid placement possible from this starting position.', 'error');
             updateStatus('No Solution');
             resetControls();
             return;
         }
-        
-        state.iterations = data.iterations;
-        await animateIterations();
         
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');
@@ -180,6 +245,12 @@ async function startVisualization() {
 
 async function getSolutionInstantly() {
     if (state.isRunning) return;
+    
+    // Check board size validity
+    if (state.boardSize < 4) {
+        showMessage(`❌ Board size ${state.boardSize} is too small! N-Queens requires at least 4x4 board. No solution possible.`, 'error');
+        return;
+    }
     
     state.isRunning = true;
     

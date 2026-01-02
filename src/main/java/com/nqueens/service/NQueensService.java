@@ -12,16 +12,19 @@ import java.util.List;
 @Service
 public class NQueensService {
     
+    private static final int MAX_ITERATIONS = 5000; // Limit iterations to prevent memory issues
     private List<BoardState> iterations;
     private int[][] board;
     private int size;
     private int queensPlaced;
+    private boolean maxIterationsReached;
     
     public NQueensResponse solveNQueens(NQueensRequest request) {
         this.size = request.getBoardSize();
         this.board = new int[size][size];
         this.iterations = new ArrayList<>();
         this.queensPlaced = 0;
+        this.maxIterationsReached = false;
         
         // Place the first queen at the starting position
         if (isSafe(request.getStartRow(), request.getStartCol())) {
@@ -36,6 +39,17 @@ public class NQueensService {
         
         // Continue solving from the next row
         boolean solved = solveNQueensUtil(request.getStartRow() + 1);
+        
+        if (maxIterationsReached) {
+            addIteration(-1, -1, "backtrack", "Too many iterations. Board size too large or starting position difficult!", true);
+            return new NQueensResponse(
+                iterations,
+                queensPlaced,
+                iterations.size(),
+                false,
+                "Computation stopped: Too complex for visualization (" + MAX_ITERATIONS + "+ iterations)"
+            );
+        }
         
         if (solved) {
             addIteration(-1, -1, "success", "Solution found with " + queensPlaced + " queens!", true);
@@ -53,6 +67,12 @@ public class NQueensService {
     }
     
     private boolean solveNQueensUtil(int row) {
+        // Check if max iterations reached to prevent memory overflow
+        if (maxIterationsReached || iterations.size() >= MAX_ITERATIONS) {
+            maxIterationsReached = true;
+            return false;
+        }
+        
         if (row >= size) {
             return true; // All queens placed successfully
         }
