@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  nqueens-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: unless-stopped
+    container_name: nqueens-visualizer
